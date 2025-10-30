@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>試験管理ツール｜利用ガイド</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #ffffff;
+        --accent: #2563eb;
+        --muted: #6b7280;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont,
+          "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(
+          circle at top,
+          #1d3a76 0%,
+          #0f172a 40%,
+          #020617 85%
+        );
+        color: #0f172a;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 2.5rem 1.5rem 3.5rem;
+      }
+      .shell {
+        width: min(980px, 100%);
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        gap: 1rem;
+      }
+      .title-block {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: radial-gradient(circle, #3b82f6, #1d4ed8);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+      }
+      h1 {
+        font-size: 1.15rem;
+        color: #e2e8f0;
+        margin: 0;
+      }
+      .small {
+        font-size: 0.7rem;
+        color: rgba(226, 232, 240, 0.6);
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: var(--radius);
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3),
+          0 0 1px rgba(15, 23, 42, 0.08);
+        padding: 1.75rem 1.75rem 1.5rem;
+      }
+      p {
+        line-height: 1.7;
+        margin-top: 0.5rem;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      h2 {
+        font-size: 0.95rem;
+        margin-top: 1.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: rgba(37, 99, 235, 0.12);
+        color: #1d4ed8;
+        font-size: 0.65rem;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+      }
+      ol {
+        margin: 1rem 0 0;
+        padding-left: 1.3rem;
+      }
+      li {
+        margin-bottom: 0.55rem;
+      }
+      .foot {
+        margin-top: 1.6rem;
+        font-size: 0.7rem;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 1.2rem;
+      }
+      .callout {
+        background: #eff6ff;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        font-size: 0.78rem;
+        margin-top: 1rem;
+      }
+      @media (max-width: 640px) {
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .panel {
+          padding: 1.25rem 1.1rem 1.1rem;
+        }
+      }
+      /* ヘッダー内の左右整列 */
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      /* 戻るボタン */
+      .back-link {
+        text-align: right;
+      }
+
+      .back-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #64748b, #475569);
+        color: #fff;
+        padding: 0.45rem 0.9rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        font-weight: 600;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+      }
+
+      .back-btn:hover {
+        background: linear-gradient(135deg, #475569, #334155);
+        transform: translateY(-1px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="title-block">
+          <div class="logo">EXAM</div>
+          <div>
+            <h1>試験管理ツール｜利用ガイド</h1>
+            <div class="small">最終更新: 2025-10-30</div>
+          </div>
+        </div>
+        <!-- ▼ 追加部分：右端に戻るボタン -->
+        <div class="back-link">
+          <a href="../index.html" class="back-btn">← ツールに戻る</a>
+        </div>
+      </header>
+
+      <main class="panel">
+        <p>
+          このドキュメントは、
+          <a
+            href="https://somekata.github.io/exam_managetool/"
+            target="_blank"
+            rel="noreferrer"
+            >試験問題管理ツール</a
+          >
+          のフォーマットで作成された試験問題を docx
+          ファイルに出力するための手順をまとめたものです。
+        </p>
+        <p>
+          試験問題の作成・編集そのものは
+          <a
+            href="https://somekata.github.io/exam_managetool/"
+            target="_blank"
+            rel="noreferrer"
+            >試験問題管理ツール</a
+          >
+          側で行ってください。
+        </p>
+
+        <h2><span class="badge">Step</span> 操作の流れ</h2>
+        <ol>
+          <li>
+            CSVファイルを読み込む：<a
+              href="https://somekata.github.io/exam_managetool/"
+              target="_blank"
+              rel="noreferrer"
+              >試験問題管理ツール</a
+            >のフォーマットで作成したCSVを選択してアップロードする。
+          </li>
+          <li>検索・絞り込み：必要に応じて検索・絞り込む。</li>
+          <li>問題の選択：一覧の中から出題する問題にチェックを入れる。</li>
+          <li>
+            順番・配点：選択中の問題が表示されるので、右側の↑↓ボタンで順番を入れ替える。配点は1点または2点で指定する。
+          </li>
+          <li>出力オプション：docxファイルに出力する内容や装飾を選択する。</li>
+          <li>
+            出力：「Wordファイル（.docx）出力」をクリックするとダウンロードされる。
+          </li>
+        </ol>
+
+        <div class="callout">
+          ※ docx
+          に出力する前に、問題番号・配点・並び順に抜けがないか確認しておくとスムーズです。
+        </div>
+
+        <div class="foot">
+          このツールは ChatGPT を用いて作成しています。
+          配布用に加工する場合は、このガイドも同じフォルダに置いてください。
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
