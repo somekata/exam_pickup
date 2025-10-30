@@ -476,3 +476,33 @@ input[type="checkbox"] {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   transform: translateY(-1px);
 }
+/* ===== ページTOPボタン ===== */
+#backToTopBtn {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+  display: none;
+  z-index: 9999;
+  transition: all 0.25s ease;
+}
+#backToTopBtn:hover {
+  transform: scale(1.08) translateY(-3px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+}
+#backToTopBtn::before {
+  content: "▲";
+  display: block;
+  font-size: 22px;
+  line-height: 60px;
+}

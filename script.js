@@ -41,10 +41,9 @@ const optFontFamilyChoices = document.getElementById("optFontFamilyChoices");
 const optFontSizeChoices = document.getElementById("optFontSizeChoices");
 
 // ===== データ保持 =====
-let allQuestions = [];      // 読み込んだ全問題（真のソース）
+let allQuestions = [];      // 読み込んだ全問題（統合後）
 let filteredQuestions = []; // フィルタ後表示用
 let selectedOrdered = [];   // 選択済み問題（並び順）
-
 
 // ===== イベント登録 =====
 fileInput.addEventListener("change", handleFiles);
@@ -60,10 +59,9 @@ exportBtn.addEventListener("click", async () => {
   });
 });
 
-
-// ===== CSV読み込み =====
+// ===== CSV読み込み（複数対応＋重複削除オプション） =====
 function handleFiles(event) {
-  const files = Array.from(event.target.files);
+  const files = Array.from(event.target.files || []);
   if (files.length === 0) return;
 
   let tempAll = [];
@@ -73,23 +71,27 @@ function handleFiles(event) {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: function(results) {
-        const parsed = results.data.map((row, idx) => ({
+      complete: function (results) {
+        const parsed = results.data.map((row) => ({
           id: safe(row["question_id"]),
           language: safe(row["language"]),
           difficulty: safe(row["difficulty"]),
           domain1: safe(row["domain1"]),
           domain2: safe(row["domain2"]),
+
           case_id: safe(row["case_id"]),
           title_text: safe(row["title"]),
           case_text: safe(row["case_text"]),
           question_text: safe(row["question_text"]),
+
           choice_a: safe(row["choice_a"]),
           choice_b: safe(row["choice_b"]),
           choice_c: safe(row["choice_c"]),
           choice_d: safe(row["choice_d"]),
           choice_e: safe(row["choice_e"]),
+
           correct: safe(row["correct"]),
+
           selected: false,
           score: 1,
           _uid: `Q_${Math.random().toString(36).slice(2)}`
@@ -97,17 +99,20 @@ function handleFiles(event) {
 
         tempAll = tempAll.concat(parsed);
         loaded++;
+
         if (loaded === files.length) {
+          // 重複削除オプション（index.html側で用意済み）
           const removeDup = document.getElementById("optRemoveDuplicate")?.checked;
           if (removeDup) {
             const seen = new Set();
             tempAll = tempAll.filter(q => {
-              if (!q.id) return true;
+              if (!q.id) return true; // ID空欄は残す
               if (seen.has(q.id)) return false;
               seen.add(q.id);
               return true;
             });
           }
+
           allQuestions = tempAll;
 
           applyFilter();
@@ -115,9 +120,12 @@ function handleFiles(event) {
           renderTable();
           renderSelectedList();
 
-          // 全体件数表示
+          // 読み込んだ全体の集計を表示
           const mapAll = countByLangAndDifficulty(allQuestions);
-          document.getElementById("tableSummary").innerHTML = renderLangDiffSummary(mapAll);
+          const tableSummaryEl = document.getElementById("tableSummary");
+          if (tableSummaryEl) {
+            tableSummaryEl.innerHTML = renderLangDiffSummary(mapAll);
+          }
         }
       }
     });
@@ -158,12 +166,16 @@ function applyFilter() {
 
     return true;
   });
-  const mapFiltered = countByLangAndDifficulty(filteredQuestions);
-  document.getElementById("tableSummary").innerHTML = renderLangDiffSummary(mapFiltered);
+
+  // フィルタ後の集計表示
+  const tableSummaryEl = document.getElementById("tableSummary");
+  if (tableSummaryEl) {
+    const mapFiltered = countByLangAndDifficulty(filteredQuestions);
+    tableSummaryEl.innerHTML = renderLangDiffSummary(mapFiltered);
+  }
 }
 
-
-// ===== 選択済み管理 =====
+// ===== 選択済みの再構築 =====
 function rebuildSelectedFromAll() {
   const oldOrder = selectedOrdered.map(q => q._uid);
   const fresh = allQuestions.filter(q => q.selected);
@@ -181,7 +193,6 @@ function rebuildSelectedFromAll() {
 
   selectedOrdered = reordered;
 }
-
 
 // ===== 左側テーブル描画 =====
 function renderTable() {
@@ -222,8 +233,7 @@ function renderTable() {
   });
 }
 
-
-// ===== タイトル/症例/問題文まとめ（UI用HTML） =====
+// ===== タイトル/症例/問題文まとめ =====
 function buildPreviewHTML(q) {
   const hasCase = q.case_id && q.case_id.trim() !== "";
 
@@ -241,7 +251,6 @@ function buildPreviewHTML(q) {
 
   return titlePart + casePart + qtextPart;
 }
-
 
 // ===== 右側リスト描画 =====
 function renderSelectedList() {
@@ -274,6 +283,9 @@ function renderSelectedList() {
           <select class="score-select" data-uid="${q._uid}">
             <option value="1" ${q.score == 1 ? "selected":""}>1点</option>
             <option value="2" ${q.score == 2 ? "selected":""}>2点</option>
+            <option value="3" ${q.score == 3 ? "selected":""}>3点</option>
+            <option value="4" ${q.score == 4 ? "selected":""}>4点</option>
+            <option value="5" ${q.score == 5 ? "selected":""}>5点</option>
           </select>
         </div>
       </div>
@@ -311,12 +323,16 @@ function renderSelectedList() {
   });
 
   updateStats();
-  const mapSel = countByLangAndDifficulty(selectedOrdered);
-  document.getElementById("selectedSummary").innerHTML = renderLangDiffSummary(mapSel);
+
+  // 選択済みの言語×難易度表示
+  const selectedSummaryEl = document.getElementById("selectedSummary");
+  if (selectedSummaryEl) {
+    const mapSel = countByLangAndDifficulty(selectedOrdered);
+    selectedSummaryEl.innerHTML = renderLangDiffSummary(mapSel);
+  }
 }
 
-
-// ===== 選択肢配列（UIプレビュー用） =====
+// ===== 選択肢UI表示用 =====
 function collectChoices(q) {
   return [
     { key: "A", text: q.choice_a },
@@ -343,9 +359,9 @@ function renderChoicesMini(q) {
   `;
 }
 
-// ===== 集計関数 =====
+// ===== 集計 =====
 function countByLangAndDifficulty(list) {
-  const map = {}; // { ja: {1:3,2:5}, en:{1:1} }
+  const map = {};
   list.forEach(q => {
     const lang = q.language || "不明";
     const diff = q.difficulty || "未設定";
@@ -357,14 +373,15 @@ function countByLangAndDifficulty(list) {
 
 function renderLangDiffSummary(map) {
   const lines = Object.entries(map).map(([lang, diffs]) => {
-    const total = Object.values(diffs).reduce((a,b)=>a+b,0);
-    const detail = Object.entries(diffs).map(([d,n])=>`レベル${d} ${n}問`).join("　");
+    const total = Object.values(diffs).reduce((a, b) => a + b, 0);
+    const detail = Object.entries(diffs).map(([d, n]) => `レベル${d} ${n}問`).join("　");
     return `${lang} ${total}問（${detail}）`;
   });
+  if (lines.length === 0) return "0問";
   return lines.join("<br>");
 }
 
-// ===== 統計 =====
+// ===== 統計（右上の数と点数） =====
 function updateStats() {
   const count = selectedOrdered.length;
   const total = selectedOrdered.reduce((sum, q) => sum + (q.score || 0), 0);
@@ -372,7 +389,6 @@ function updateStats() {
   statCountEl.textContent = count;
   statTotalEl.textContent = total;
 }
-
 
 // ===== 出力オプション収集 =====
 function collectSettingsFromUI() {
@@ -406,7 +422,6 @@ function collectSettingsFromUI() {
   };
 }
 
-
 // ===== Word(docx)出力 =====
 async function exportDocx(settings) {
   if (selectedOrdered.length === 0) {
@@ -438,20 +453,19 @@ async function exportDocx(settings) {
   }
   const headerObj = new Header({ children: headerChildren });
 
-  // フッター（ページ番号）
+  // フッター（ページ番号）※出る環境だけ出す
   let footerObj = new Footer({ children: [] });
   if (settings.showPageNumber) {
     footerObj = new Footer({
       children: [
         new Paragraph({
-          children: [
-            new TextRun("Page "),
-            PageNumber.CURRENT,
-            new TextRun(" / "),
-            PageNumber.TOTAL_PAGES
-          ],
           alignment: AlignmentType.CENTER,
-          spacing: { before: 200 } // 少し浮かせて潰れないように
+          children: [
+            new TextRun({ text: "Page " }),
+            PageNumber.CURRENT,
+            new TextRun({ text: " / " }),
+            PageNumber.TOTAL_PAGES
+          ]
         })
       ]
     });
@@ -463,10 +477,9 @@ async function exportDocx(settings) {
     const theseParas = buildDocxParagraphsForQuestion(q, idx, settings);
     bodyParas.push(...theseParas);
 
-    // 各問題の間に空行
     bodyParas.push(
       new Paragraph({
-        children: [ new TextRun({ text: "" }) ],
+        children: [new TextRun({ text: "" })],
         spacing: { after: 120 }
       })
     );
@@ -476,7 +489,7 @@ async function exportDocx(settings) {
     sections: [
       {
         headers: { default: headerObj },
-        footers: { default: footerObj, first: footerObj }, // 1ページ目も同じフッター
+        footers: { default: footerObj, first: footerObj },
         page: {
           margin: margin
         },
@@ -493,51 +506,13 @@ async function exportDocx(settings) {
   a.click();
 }
 
-
 // ===== 1問ぶんの段落を構成 =====
 function buildDocxParagraphsForQuestion(q, index, settings) {
   const { Paragraph, TextRun } = window.docx;
 
   const paras = [];
 
-  // 1) 問題番号＋(必要なら配点をheader表示)
-  const questionHeadRuns = buildQuestionHeaderRuns(q, index, settings);
-
-  // 2) タイトル → 症例 → 問題文
-  const hasCase = q.case_id && q.case_id.trim() !== "";
-
-  if (settings.includeTitle && q.title_text) {
-    const titleRuns = htmlToRuns(q.title_text, {
-      fontFamily: settings.fontFamilyQuestion,
-      fontSizePt: settings.fontSizeQuestionPt
-    });
-    paras.push(
-      new Paragraph({
-        children: titleRuns,
-        spacing: { after: 80 }
-      })
-    );
-  }
-
-  if (hasCase && q.case_text) {
-    const caseRuns = htmlToRuns(q.case_text, {
-      fontFamily: settings.fontFamilyQuestion,
-      fontSizePt: settings.fontSizeQuestionPt
-    });
-    paras.push(
-      new Paragraph({
-        children: caseRuns,
-        spacing: { after: 80 }
-      })
-    );
-  }
-
-  const bodyRuns = htmlToRuns(q.question_text, {
-    fontFamily: settings.fontFamilyQuestion,
-    fontSizePt: settings.fontSizeQuestionPt
-  });
-
-  // メタ情報
+  // メタ情報を先に出す場合
   if (settings.includeMetaInfo) {
     paras.push(
       new Paragraph({
@@ -554,19 +529,55 @@ function buildDocxParagraphsForQuestion(q, index, settings) {
     );
   }
 
+  // タイトル
+  if (settings.includeTitle && q.title_text) {
+    const titleRuns = htmlToRuns(q.title_text, {
+      fontFamily: settings.fontFamilyQuestion,
+      fontSizePt: settings.fontSizeQuestionPt
+    });
+    paras.push(
+      new Paragraph({
+        children: titleRuns,
+        spacing: { after: 80 }
+      })
+    );
+  }
+
+  // 症例
+  const hasCase = q.case_id && q.case_id.trim() !== "";
+  if (hasCase && q.case_text) {
+    const caseRuns = htmlToRuns(q.case_text, {
+      fontFamily: settings.fontFamilyQuestion,
+      fontSizePt: settings.fontSizeQuestionPt
+    });
+    paras.push(
+      new Paragraph({
+        children: caseRuns,
+        spacing: { after: 80 }
+      })
+    );
+  }
+
+  // 問題文＋番号
+  const bodyRuns = htmlToRuns(q.question_text, {
+    fontFamily: settings.fontFamilyQuestion,
+    fontSizePt: settings.fontSizeQuestionPt
+  });
+
+  const questionHeadRuns = buildQuestionHeaderRuns(q, index, settings);
+
   // 配点を末尾につけたい場合
   if (settings.showScore && settings.scorePosition === "end") {
     bodyRuns.push(
       new TextRun({
-        text: `（${q.score}点）`,
-        bold: true,
+        text: `[${q.score}]`,
+        bold: false,
         size: settings.fontSizeQuestionPt * 2,
         font: settings.fontFamilyQuestion
       })
     );
   }
 
-  // 本文＋Q番号
   paras.push(
     new Paragraph({
       children: [...questionHeadRuns, ...bodyRuns],
@@ -580,7 +591,7 @@ function buildDocxParagraphsForQuestion(q, index, settings) {
     choiceList.forEach(choiceObj => {
       const isCorrect = isChoiceCorrect(q.correct, choiceObj.labelOriginal);
 
-      // オリジナルの本文（docx.TextRunインスタンスの配列）
+      // 本文をrunsに
       const choiceRuns = htmlToRuns(choiceObj.text, {
         fontFamily: settings.fontFamilyChoices,
         fontSizePt: settings.fontSizeChoicesPt
@@ -594,45 +605,38 @@ function buildDocxParagraphsForQuestion(q, index, settings) {
         font: settings.fontFamilyChoices
       });
 
-      let finalRuns;
+      // 正解を表示したいときだけ★を足す（安全なやり方）
       if (settings.showAnswer && isCorrect) {
-        // 正解肢は強調スタイルを上書きコピーする
-        const emphasizedRuns = choiceRuns.map(r => {
-          // r は TextRunインスタンス。textは r.options.text にある想定。
-          const baseText = (r.options && r.options.text) ? r.options.text : "";
-          const baseItalics = (r.options && r.options.italics) ? r.options.italics : false;
-          const baseUnderline = (r.options && r.options.underline) ? r.options.underline : undefined;
-          const baseBold = (r.options && r.options.bold) ? r.options.bold : false;
-
-          return new TextRun({
-            text: baseText,
-            size: settings.fontSizeChoicesPt * 2,
-            font: settings.fontFamilyChoices,
-            color: settings.answerStyle.color || "000000",
-            bold: settings.answerStyle.bold || baseBold,
-            underline: settings.answerStyle.underline ? {} : baseUnderline,
-            italics: baseItalics
-          });
-        });
-
-        finalRuns = [ labelRun, ...emphasizedRuns ];
+        paras.push(
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              labelRun,
+              ...choiceRuns,
+              new TextRun({
+                text: " ★正答肢",
+                color: settings.answerStyle.color || "FF0000",
+                bold: settings.answerStyle.bold || true,
+                underline: settings.answerStyle.underline ? {} : undefined,
+                size: settings.fontSizeChoicesPt * 2,
+                font: settings.fontFamilyChoices
+              })
+            ]
+          })
+        );
       } else {
-        // そのまま
-        finalRuns = [ labelRun, ...choiceRuns ];
+        paras.push(
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [labelRun, ...choiceRuns]
+          })
+        );
       }
-
-      paras.push(
-        new Paragraph({
-          children: finalRuns,
-          spacing: { after: 60 }
-        })
-      );
     });
   }
 
   return paras;
 }
-
 
 // ===== ヘッダ行(Q番号など) =====
 function buildQuestionHeaderRuns(q, index, settings) {
@@ -641,7 +645,7 @@ function buildQuestionHeaderRuns(q, index, settings) {
 
   let headerText = label;
   if (settings.showScore && settings.scorePosition === "header") {
-    headerText += `（${q.score}点）`;
+    headerText += `[${q.score}]`;
   }
   headerText += " ";
 
@@ -655,37 +659,34 @@ function buildQuestionHeaderRuns(q, index, settings) {
   ];
 }
 
-
 // ===== Q番号スタイル =====
 function formatQuestionNumber(i, style) {
-  switch(style){
-    case "qnum":   return `Q${i+1}`;       // Q1
-    case "numdot": return `${i+1}.`;       // 1.
-    case "paren":  return `(${i+1})`;      // (1)
-    case "dai":    return `第${i+1}問`;    // 第1問
-    case "mondai": return `問題${i+1}`;    // 問題1
-    default:       return `Q${i+1}`;
+  switch (style) {
+    case "qnum": return `Q${i + 1}`;
+    case "numdot": return `${i + 1}.`;
+    case "paren": return `(${i + 1})`;
+    case "dai": return `第${i + 1}問`;
+    case "mondai": return `問題${i + 1}`;
+    default: return `Q${i + 1}`;
   }
 }
-
 
 // ===== 選択肢ラベルスタイル =====
 function formatChoiceLabel(n, style) {
   if (style === "abc") {
     const code = "a".charCodeAt(0) + n;
-    return String.fromCharCode(code); // a,b,c...
+    return String.fromCharCode(code);
   } else if (style === "ABC") {
     const code = "A".charCodeAt(0) + n;
-    return String.fromCharCode(code); // A,B,C...
+    return String.fromCharCode(code);
   } else {
-    return String(n + 1);             // 1,2,3...
+    return String(n + 1);
   }
 }
 
-
 // ===== 選択肢（docx用） =====
 function buildChoiceList(q, choiceStyle) {
-  const raw = collectChoices(q); // [{key:"A", text:"..."}, ...]
+  const raw = collectChoices(q);
   return raw.map((item, idx) => {
     const labelCore = formatChoiceLabel(idx, choiceStyle);
     return {
@@ -696,10 +697,8 @@ function buildChoiceList(q, choiceStyle) {
   });
 }
 
-
 // ===== 正解判定 =====
 function isChoiceCorrect(correctField, originalKey) {
-  // correct が "a|c" のような複数もありうるので分割して判定
   const answers = String(correctField || "")
     .split("|")
     .map(s => s.trim().toUpperCase())
@@ -708,10 +707,9 @@ function isChoiceCorrect(correctField, originalKey) {
   return answers.includes(target);
 }
 
-
 // ===== ページ余白 =====
 function getMarginPreset(name) {
-  switch(name){
+  switch (name) {
     case "narrow":
       return { top: 500, bottom: 500, left: 500, right: 500 };
     case "wide":
@@ -722,13 +720,7 @@ function getMarginPreset(name) {
   }
 }
 
-
 // ===== HTML文字列 -> TextRun配列 =====
-// - <b>/<strong> → bold
-// - <i>/<em> → italics
-// - <u> → underline
-// - <br> → "\n" としてTextRunを入れる
-// 完全な空白だけのノードはスキップ。
 function htmlToRuns(htmlString, baseStyle) {
   const { fontFamily, fontSizePt } = baseStyle;
   const container = document.createElement("div");
@@ -809,7 +801,6 @@ function htmlToRuns(htmlString, baseStyle) {
 
   return runs;
 }
-
 
 // ===== ユーティリティ =====
 function safe(v) {

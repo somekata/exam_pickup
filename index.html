@@ -185,20 +185,20 @@
             <label class="opt-label">
               問題番号スタイル
               <select id="optQuestionNumberStyle" class="opt-input">
-                <option value="qnum">Q1.</option>
+                <option value="mondai" selected>問題1</option>
+                <option value="dai">第1問</option>
                 <option value="numdot">1.</option>
                 <option value="paren">(1)</option>
-                <option value="dai">第1問</option>
-                <option value="mondai">問題1</option>
+                <option value="qnum">Q1.</option>
               </select>
             </label>
 
             <label class="opt-label">
               選択肢ラベル
               <select id="optChoiceLabelStyle" class="opt-input">
+                <option value="123" selected>1. / 2. / 3.</option>
                 <option value="abc">a. / b. / c.</option>
-                <option value="ABC" selected>A. / B. / C.</option>
-                <option value="123">1. / 2. / 3.</option>
+                <option value="ABC">A. / B. / C.</option>
               </select>
             </label>
 
@@ -210,10 +210,8 @@
             <label class="opt-label">
               配点の表示位置
               <select id="optScorePosition" class="opt-input">
-                <option value="header" selected>
-                  問題番号の横に (Q1(2点) ...)
-                </option>
-                <option value="end">問題文の最後に (... (2点))</option>
+                <option value="end" selected>問題文の最後に (... [2])</option>
+                <option value="header">問題番号の横に (Q1[2]...)</option>
               </select>
             </label>
 
@@ -319,5 +317,7 @@
     </footer>
 
     <script src="script.js"></script>
+    <button id="backToTopBtn" type="button" title="ページの先頭へ">TOP</button>
+    <script src="topbutton.js"></script>
   </body>
 </html>
