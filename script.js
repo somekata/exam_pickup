@@ -26,6 +26,7 @@ const optChoiceLabelStyle = document.getElementById("optChoiceLabelStyle");
 const optShowScore = document.getElementById("optShowScore");
 const optScorePosition = document.getElementById("optScorePosition");
 
+const optIncludeTitle = document.getElementById("optIncludeTitle");
 const optIncludeChoices = document.getElementById("optIncludeChoices");
 const optIncludeMeta = document.getElementById("optIncludeMeta");
 
@@ -46,7 +47,7 @@ let selectedOrdered = [];   // 選択済み問題（並び順）
 
 
 // ===== イベント登録 =====
-fileInput.addEventListener("change", handleFile);
+fileInput.addEventListener("change", handleFiles);
 exportBtn.addEventListener("click", async () => {
   const settings = collectSettingsFromUI();
   await exportDocx(settings);
@@ -61,62 +62,67 @@ exportBtn.addEventListener("click", async () => {
 
 
 // ===== CSV読み込み =====
-function handleFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+function handleFiles(event) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      allQuestions = results.data.map((row, idx) => {
-        const q = {
+  let tempAll = [];
+  let loaded = 0;
+
+  files.forEach(file => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        const parsed = results.data.map((row, idx) => ({
           id: safe(row["question_id"]),
           language: safe(row["language"]),
           difficulty: safe(row["difficulty"]),
           domain1: safe(row["domain1"]),
           domain2: safe(row["domain2"]),
-
-          // 症例判定用
           case_id: safe(row["case_id"]),
-
-          // 表示要素
           title_text: safe(row["title"]),
           case_text: safe(row["case_text"]),
           question_text: safe(row["question_text"]),
-
-          // 選択肢
           choice_a: safe(row["choice_a"]),
           choice_b: safe(row["choice_b"]),
           choice_c: safe(row["choice_c"]),
           choice_d: safe(row["choice_d"]),
           choice_e: safe(row["choice_e"]),
-
-          // 正解（"A", "B", "A|C" など）
           correct: safe(row["correct"]),
-
           selected: false,
           score: 1,
-          _uid: `Q_${idx}_${Date.now()}`
-        };
+          _uid: `Q_${Math.random().toString(36).slice(2)}`
+        }));
 
-        const choiceCount = [q.choice_a,q.choice_b,q.choice_c,q.choice_d,q.choice_e]
-          .filter(t => t && t.trim() !== "").length;
-        if (choiceCount === 0) {
-          console.warn("No choices detected for", q.id, q);
+        tempAll = tempAll.concat(parsed);
+        loaded++;
+        if (loaded === files.length) {
+          const removeDup = document.getElementById("optRemoveDuplicate")?.checked;
+          if (removeDup) {
+            const seen = new Set();
+            tempAll = tempAll.filter(q => {
+              if (!q.id) return true;
+              if (seen.has(q.id)) return false;
+              seen.add(q.id);
+              return true;
+            });
+          }
+          allQuestions = tempAll;
+
+          applyFilter();
+          rebuildSelectedFromAll();
+          renderTable();
+          renderSelectedList();
+
+          // 全体件数表示
+          const mapAll = countByLangAndDifficulty(allQuestions);
+          document.getElementById("tableSummary").innerHTML = renderLangDiffSummary(mapAll);
         }
-
-        return q;
-      });
-
-      applyFilter();
-      rebuildSelectedFromAll();
-      renderTable();
-      renderSelectedList();
-    }
+      }
+    });
   });
 }
-
 
 // ===== フィルタ処理 =====
 function applyFilter() {
@@ -152,6 +158,8 @@ function applyFilter() {
 
     return true;
   });
+  const mapFiltered = countByLangAndDifficulty(filteredQuestions);
+  document.getElementById("tableSummary").innerHTML = renderLangDiffSummary(mapFiltered);
 }
 
 
@@ -303,6 +311,8 @@ function renderSelectedList() {
   });
 
   updateStats();
+  const mapSel = countByLangAndDifficulty(selectedOrdered);
+  document.getElementById("selectedSummary").innerHTML = renderLangDiffSummary(mapSel);
 }
 
 
@@ -333,6 +343,26 @@ function renderChoicesMini(q) {
   `;
 }
 
+// ===== 集計関数 =====
+function countByLangAndDifficulty(list) {
+  const map = {}; // { ja: {1:3,2:5}, en:{1:1} }
+  list.forEach(q => {
+    const lang = q.language || "不明";
+    const diff = q.difficulty || "未設定";
+    if (!map[lang]) map[lang] = {};
+    map[lang][diff] = (map[lang][diff] || 0) + 1;
+  });
+  return map;
+}
+
+function renderLangDiffSummary(map) {
+  const lines = Object.entries(map).map(([lang, diffs]) => {
+    const total = Object.values(diffs).reduce((a,b)=>a+b,0);
+    const detail = Object.entries(diffs).map(([d,n])=>`レベル${d} ${n}問`).join("　");
+    return `${lang} ${total}問（${detail}）`;
+  });
+  return lines.join("<br>");
+}
 
 // ===== 統計 =====
 function updateStats() {
@@ -357,6 +387,7 @@ function collectSettingsFromUI() {
     showScore: optShowScore.checked,
     scorePosition: optScorePosition.value,
 
+    includeTitle: optIncludeTitle.checked,
     includeChoices: optIncludeChoices.checked,
     includeMetaInfo: optIncludeMeta.checked,
 
@@ -475,7 +506,7 @@ function buildDocxParagraphsForQuestion(q, index, settings) {
   // 2) タイトル → 症例 → 問題文
   const hasCase = q.case_id && q.case_id.trim() !== "";
 
-  if (q.title_text) {
+  if (settings.includeTitle && q.title_text) {
     const titleRuns = htmlToRuns(q.title_text, {
       fontFamily: settings.fontFamilyQuestion,
       fontSizePt: settings.fontSizeQuestionPt

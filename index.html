@@ -33,7 +33,12 @@
       <section class="panel left">
         <section class="block">
           <h2>① CSVファイルを読み込む</h2>
-          <input type="file" id="fileInput" accept=".csv" />
+          <input type="file" id="fileInput" accept=".csv" multiple />
+          <label class="opt-label-inline">
+            <input type="checkbox" id="optRemoveDuplicate" checked />
+            重複question_idを自動で削除する
+          </label>
+
           <div class="note">
             期待する列: question_id / case_id / title / case_text /
             question_text / choice_a〜e / correct / language / difficulty /
@@ -101,6 +106,9 @@
 
         <section class="block stretch">
           <h2>③ 問題一覧（チェックで選択／解除）</h2>
+          <div id="tableSummary" class="note small" style="margin-bottom: 6px">
+            読み込み待ち...
+          </div>
           <div class="table-wrapper">
             <table id="questionTable">
               <thead>
@@ -125,7 +133,13 @@
       <section class="panel right">
         <section class="block">
           <h2>④ 選択中の問題</h2>
-
+          <div
+            id="selectedSummary"
+            class="note small"
+            style="margin-bottom: 6px"
+          >
+            （未選択）
+          </div>
           <div id="stats">
             <div>問題数: <span id="statCount">0</span>問</div>
             <div>合計点: <span id="statTotal">0</span>点</div>
@@ -201,6 +215,11 @@
                 </option>
                 <option value="end">問題文の最後に (... (2点))</option>
               </select>
+            </label>
+
+            <label class="opt-label-inline">
+              <input type="checkbox" id="optIncludeTitle" checked />
+              タイトルを表示する
             </label>
 
             <label class="opt-label-inline">
