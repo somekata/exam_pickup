@@ -437,3 +437,42 @@ input[type="checkbox"] {
   background: #e2e8f0;
   border-radius: 4px;
 }
+
+/* ヘッダー全体を左右配置 */
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 左側ブロック（タイトル＋説明） */
+.head-left {
+  flex: 1;
+  min-width: 250px;
+}
+
+/* 右端ボタン */
+.head-right {
+  text-align: right;
+}
+
+/* ボタンデザイン */
+.guide-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.guide-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+}
