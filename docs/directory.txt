@@ -1,0 +1,24 @@
+exam_pickup/
+│
+├── index.html          # メイン画面（出題ツール本体UI）
+├── style.css           # 共通スタイル
+├── script.js           # メイン処理（CSV読込・選択・docx生成など）
+│
+├── /data/
+│   ├── sample_questions.csv  # テスト用サンプル問題データ（managetool出力例）
+│   └── readme.txt            # データ形式の説明（カラム名・例など）
+│
+├── /lib/
+│   └── docx.min.js           # Word出力用ライブラリ（https://github.com/dolanmiu/docx）
+│
+├── /docs/
+│   ├── README.md             # 教員向け概要・使い方
+│   └── instruction.html      # 使い方マニュアル（ブラウザ上で見られる形式）
+│
+├── /output/
+│   ├── sample_exam.docx      # 出力例（Word形式）
+│   └── (自動生成ファイルがここに保存される)
+│
+└── /assets/
+    ├── logo.png              # ロゴやアイコン類（必要なら）
+    └── favicon.ico           # ファビコン
