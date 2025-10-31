@@ -476,33 +476,90 @@ input[type="checkbox"] {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   transform: translateY(-1px);
 }
-/* ===== ページTOPボタン ===== */
-#backToTopBtn {
+/* --- パイ型スクロール進捗インジケーター（シックver.） --- */
+#scroll-progress-pie {
   position: fixed;
-  right: 32px;
-  bottom: 32px;
-  width: 60px;
-  height: 60px;
-  border: none;
+  bottom: 25px;
+  right: 25px;
+  width: 65px;
+  height: 65px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+  background: conic-gradient(#6c757d 0%, #6c757d 0%, #2b2f33 0%);
   display: none;
-  z-index: 9999;
-  transition: all 0.25s ease;
+  align-items: center;
+  justify-content: center;
+  font-family: "Montserrat", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #f1f1f1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  z-index: 999;
+  transition: transform 0.25s ease, box-shadow 0.3s ease, background 0.3s ease;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 6px 16px rgba(0, 0, 0, 0.4);
+  background-blend-mode: multiply;
+  backdrop-filter: blur(4px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
-#backToTopBtn:hover {
-  transform: scale(1.08) translateY(-3px);
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+
+/* --- ホバー時：上品な動きだけ（派手な光はナシ） --- */
+#scroll-progress-pie:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 8px 20px rgba(0, 0, 0, 0.45);
 }
-#backToTopBtn::before {
-  content: "▲";
-  display: block;
+
+/* --- スクロール完了時（静かな達成感のグリーン） --- */
+#scroll-progress-pie.fully-scrolled {
+  background: conic-gradient(#198754 100%, #198754 100%, #2b2f33 0%);
+  color: #e9ecef;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* --- 出現時のフェードイン効果 --- */
+#scroll-progress-pie.show {
+  display: flex;
+  animation: fadeInScale 0.4s ease forwards;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- 「TOP」文字を中央に完全固定する --- */
+#scroll-progress-pie::before {
+  content: "⇧";
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 22px;
-  line-height: 60px;
+  color: inherit;
+  font-weight: 600;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* --- 文字「TOP」を下部に控えめに配置 --- */
+#scroll-progress-pie::after {
+  content: "TOP";
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  opacity: 0.8;
 }
