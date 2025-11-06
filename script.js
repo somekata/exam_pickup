@@ -14,6 +14,8 @@ const filterLang = document.getElementById("filterLang");
 const filterID = document.getElementById("filterID");
 const filterDifficulty = document.getElementById("filterDifficulty");
 const filterDomain = document.getElementById("filterDomain");
+const filterTagInclude = document.getElementById("filterTagInclude");
+const filterTagExclude = document.getElementById("filterTagExclude");
 
 // 出力オプションUI
 const optTitleHeader = document.getElementById("optTitleHeader");
@@ -52,7 +54,7 @@ exportBtn.addEventListener("click", async () => {
   await exportDocx(settings);
 });
 
-[filterKeyword, filterLang, filterID, filterDifficulty, filterDomain].forEach(el => {
+[filterKeyword, filterLang, filterID, filterDifficulty, filterDomain, filterTagInclude, filterTagExclude].forEach(el => {
   el.addEventListener("input", () => {
     applyFilter();
     renderTable();
@@ -92,8 +94,15 @@ function handleFiles(event) {
 
           correct: safe(row["correct"]),
 
+          // ★ 追加: CSVの tag 列 → 配列化
+          tags: String(row["tag"] ?? "")
+            .split(",")
+            .map(s => s.trim())
+            .filter(Boolean),
+
           selected: false,
           score: 1,
+
           _uid: `Q_${Math.random().toString(36).slice(2)}`
         }));
 
@@ -101,7 +110,7 @@ function handleFiles(event) {
         loaded++;
 
         if (loaded === files.length) {
-          // 重複削除オプション（index.html側で用意済み）
+          // 重複削除オプション
           const removeDup = document.getElementById("optRemoveDuplicate")?.checked;
           if (removeDup) {
             const seen = new Set();
@@ -120,10 +129,10 @@ function handleFiles(event) {
           renderTable();
           renderSelectedList();
 
-          // 読み込んだ全体の集計を表示
-          const mapAll = countByLangAndDifficulty(allQuestions);
+          // 集計表示
           const tableSummaryEl = document.getElementById("tableSummary");
           if (tableSummaryEl) {
+            const mapAll = countByLangAndDifficulty(allQuestions);
             tableSummaryEl.innerHTML = renderLangDiffSummary(mapAll);
           }
         }
@@ -134,34 +143,48 @@ function handleFiles(event) {
 
 // ===== フィルタ処理 =====
 function applyFilter() {
-  const kw = filterKeyword.value.trim().toLowerCase();
+  const kw   = filterKeyword.value.trim().toLowerCase();
   const lang = filterLang.value.trim().toLowerCase();
-  const qid = filterID.value.trim().toLowerCase();
+  const qid  = filterID.value.trim().toLowerCase();
   const diff = filterDifficulty.value.trim().toLowerCase();
-  const dom = filterDomain.value.trim().toLowerCase();
+  const dom  = filterDomain.value.trim().toLowerCase();
+
+  // tag 検索（スペース区切りで AND / 除外は OR）
+  const incTags = (filterTagInclude?.value || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const excTags = (filterTagExclude?.value || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
 
   filteredQuestions = allQuestions.filter(q => {
+    // --- キーワード（タイトル/症例/本文/選択肢の全文から部分一致） ---
     if (kw) {
       const haystack = [
-        q.title_text,
-        q.case_text,
-        q.question_text,
-        q.choice_a,
-        q.choice_b,
-        q.choice_c,
-        q.choice_d,
-        q.choice_e
+        q.title_text, q.case_text, q.question_text,
+        q.choice_a, q.choice_b, q.choice_c, q.choice_d, q.choice_e
       ].join(" ").toLowerCase();
       if (!haystack.includes(kw)) return false;
     }
 
-    if (lang && !q.language.toLowerCase().includes(lang)) return false;
-    if (qid && !q.id.toLowerCase().includes(qid)) return false;
-    if (diff && !q.difficulty.toLowerCase().includes(diff)) return false;
+    // --- 言語 / ID / 難易度 ---
+    if (lang && !String(q.language).toLowerCase().includes(lang)) return false;
+    if (qid  && !String(q.id).toLowerCase().includes(qid))         return false;
+    if (diff && !String(q.difficulty).toLowerCase().includes(diff)) return false;
 
+    // --- 既存の「領域」入力（domain1/2 の部分一致）---
     if (dom) {
-      const domHay = (q.domain1 + " " + q.domain2).toLowerCase();
+      const domHay = (String(q.domain1) + " " + String(q.domain2)).toLowerCase();
       if (!domHay.includes(dom)) return false;
+    }
+
+    // --- tag 判定（CSVの tag 列を使用）---
+    // q.tags は配列想定。なければ domain1/2 をタグ代替に使う後方互換。
+    const joinedTagsLower = getTagsJoinedLower(q);
+
+    // 含む（AND）
+    for (const t of incTags) {
+      if (!joinedTagsLower.includes(t)) return false;
+    }
+    // 除外（OR）
+    for (const t of excTags) {
+      if (joinedTagsLower.includes(t)) return false;
     }
 
     return true;
@@ -211,7 +234,8 @@ function renderTable() {
       <td>${escapeHTML(q.id)}</td>
       <td>${escapeHTML(q.language)}</td>
       <td>${escapeHTML(q.difficulty)}</td>
-      <td>${escapeHTML(q.domain1)}</td>
+      <td>${escapeHTML(formatDomain(q))}</td>
+      <td class="tags-cell">${renderTagsCell(q)}</td>
       <td class="question-cell">${previewHtml}</td>
     `;
 
@@ -274,6 +298,8 @@ function renderSelectedList() {
           ／${escapeHTML(q.domain1)}${q.domain2 ? "・" + escapeHTML(q.domain2) : ""}
         </div>
 
+        ${formatTagsInline(q) ? `<div class="meta tags">${escapeHTML(formatTagsInline(q))}</div>` : ""}
+        
         ${preview}
 
         ${choicesHTML}
@@ -328,7 +354,10 @@ function renderSelectedList() {
   const selectedSummaryEl = document.getElementById("selectedSummary");
   if (selectedSummaryEl) {
     const mapSel = countByLangAndDifficulty(selectedOrdered);
-    selectedSummaryEl.innerHTML = renderLangDiffSummary(mapSel);
+    const mapTag = countByTagAndDifficulty(selectedOrdered); // ★追加：タグ×難易度
+    const langLine = renderLangDiffSummary(mapSel);
+    const tagLine  = renderTagDiffSummary(mapTag);            // ★追加
+    selectedSummaryEl.innerHTML = [langLine, tagLine].filter(Boolean).join("<br>");
   }
 }
 
@@ -371,6 +400,20 @@ function countByLangAndDifficulty(list) {
   return map;
 }
 
+function countByTagAndDifficulty(list) {
+  const map = {};
+  list.forEach(q => {
+    if (!Array.isArray(q.tags) || q.tags.length === 0) return;
+    const diff = q.difficulty || "未設定";
+    q.tags.forEach(tag => {
+      const k = tag || "不明";
+      if (!map[k]) map[k] = {};
+      map[k][diff] = (map[k][diff] || 0) + 1;
+    });
+  });
+  return map;
+}
+
 function renderLangDiffSummary(map) {
   const lines = Object.entries(map).map(([lang, diffs]) => {
     const total = Object.values(diffs).reduce((a, b) => a + b, 0);
@@ -380,6 +423,22 @@ function renderLangDiffSummary(map) {
   if (lines.length === 0) return "0問";
   return lines.join("<br>");
 }
+
+function renderTagDiffSummary(map) {
+  const tags = Object.keys(map).sort((a, b) => a.localeCompare(b, "ja"));
+  if (tags.length === 0) return "";
+  const lines = tags.map(tag => {
+    const diffs = map[tag];
+    const total = Object.values(diffs).reduce((a, b) => a + b, 0);
+    const detail = Object.entries(diffs)
+      .sort(([a], [b]) => String(a).localeCompare(String(b), "ja"))
+      .map(([d, n]) => `レベル${d} ${n}問`)
+      .join("　");
+    return `${tag}（${detail}）`;
+  });
+  return lines.join("<br>");
+}
+
 
 // ===== 統計（右上の数と点数） =====
 function updateStats() {
@@ -813,4 +872,119 @@ function escapeHTML(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+function getTagsJoinedLower(q) {
+  if (Array.isArray(q.tags) && q.tags.length > 0) {
+    return q.tags.map(s => String(s).toLowerCase()).join(" ");
+  }
+  // CSVにtag列が無いデータとの後方互換：domain1/2を代替タグに
+  return (String(q.domain1) + " " + String(q.domain2)).toLowerCase();
+}
+
+function renderTagsCell(q) {
+  const arr = Array.isArray(q.tags) ? q.tags : [];
+  // 後方互換（念のため）
+  const showArr = arr.length > 0 ? arr : [q.domain1, q.domain2].filter(Boolean);
+  if (showArr.length === 0) return "";
+  return showArr.map(t => `<span class="tag-badge">${escapeHTML(t)}</span>`).join(" ");
+}
+
+// ===== 列リサイズ初期化 =====
+function setupColumnResize() {
+  const table = document.getElementById("questionTable");
+  const colgroup = document.getElementById("qtable-colgroup");
+  if (!table || !colgroup) return;
+
+  // 既にハンドルがあれば二重付与しない
+  const ths = table.querySelectorAll("thead th");
+  let needHandles = false;
+  ths.forEach(th => { if (!th.querySelector(".col-resizer")) needHandles = true; });
+  if (!needHandles) return;
+
+  // ヘッダー各セルにドラッグハンドルを追加
+  ths.forEach((th, idx) => {
+    const handle = document.createElement("div");
+    handle.className = "col-resizer";
+    handle.title = "ドラッグで列幅を変更";
+    handle.addEventListener("mousedown", (e) => startResize(e, idx));
+    th.appendChild(handle);
+  });
+}
+
+let _resizeState = null; // { startX, startWidth, colEl, minWidth }
+
+function startResize(e, colIndex) {
+  e.preventDefault();
+  const colgroup = document.getElementById("qtable-colgroup");
+  const colEl = colgroup?.children[colIndex];
+  if (!colEl) return;
+
+  const startX = e.clientX;
+  // 現在幅（px）を取得。なければ実測から拾う
+  const currentWidthPx = getColCurrentWidthPx(colEl, colIndex);
+  _resizeState = {
+    startX,
+    startWidth: currentWidthPx,
+    colEl,
+    minWidth: 50   // 最小幅はお好みで
+  };
+
+  document.body.classList.add("resizing");
+  document.addEventListener("mousemove", onResizing);
+  document.addEventListener("mouseup", endResize);
+}
+
+function onResizing(e) {
+  if (!_resizeState) return;
+  const dx = e.clientX - _resizeState.startX;
+  let newWidth = _resizeState.startWidth + dx;
+  if (newWidth < _resizeState.minWidth) newWidth = _resizeState.minWidth;
+
+  _resizeState.colEl.style.width = `${newWidth}px`;
+}
+
+function endResize() {
+  document.removeEventListener("mousemove", onResizing);
+  document.removeEventListener("mouseup", endResize);
+  document.body.classList.remove("resizing");
+  _resizeState = null;
+}
+
+// 現在の列幅(px)を col か 実測から取得
+function getColCurrentWidthPx(colEl, idx) {
+  // 1) col に width 指定があればそれを使用
+  const w = colEl.style.width || colEl.getAttribute("width");
+  if (w && /px$/.test(w)) return parseFloat(w);
+
+  // 2) なければ実測: thead th のオフセット幅
+  const table = document.getElementById("questionTable");
+  const th = table?.querySelectorAll("thead th")?.[idx];
+  if (th) return th.offsetWidth;
+
+  // 3) 保険
+  return 120;
+}
+
+// ページ読み込み時に一度だけハンドルを付与
+document.addEventListener("DOMContentLoaded", () => {
+  setupColumnResize();
+});
+
+// 画面サイズ大変動時に崩れたら、再初期化したい場合は↓を解放
+// window.addEventListener("resize", () => setupColumnResize());
+
+function formatDomain(q) {
+  const d1 = (q.domain1 || "").trim();
+  const d2 = (q.domain2 || "").trim();
+  if (d1 && d2) return `${d1}・${d2}`;
+  return d1 || d2 || "";
+}
+
+function formatTagsInline(q) {
+  // CSVの tag 列を配列化している前提
+  if (Array.isArray(q.tags) && q.tags.length > 0) {
+    return q.tags.join(", ");
+  }
+  // 後方互換：tagが無い旧データでは空文字（または domain1/2 を返したければここで切替）
+  return "";
 }

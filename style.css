@@ -563,3 +563,38 @@ input[type="checkbox"] {
   letter-spacing: 1.5px;
   opacity: 0.8;
 }
+
+.tags-cell { white-space: normal; line-height: 1.6; }
+.tag-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #eef2f7;
+  border: 1px solid #d7dce3;
+  font-size: 12px;
+  margin: 2px 4px 2px 0;
+}
+
+.resizable-table {
+  table-layout: fixed; /* なくても動くが固定にすると見栄えが安定 */
+}
+.resizable-table th {
+  position: relative;
+  overflow: visible;
+}
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;           /* ヘッダー右端に配置 */
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+}
+.col-resizer:hover {
+  background: rgba(0,0,0,0.06);
+}
+.resizing .col-resizer {
+  background: rgba(0,0,0,0.08);
+}
+.meta.tags { color: #3b4252; opacity: 0.9; }

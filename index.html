@@ -99,6 +99,25 @@
                 placeholder="domain1 / domain2 部分一致"
               />
             </label>
+            <label class="filter-item">
+              tag含む（スペース区切り可）
+              <input
+                type="text"
+                id="filterTagInclude"
+                class="filter-input"
+                placeholder="例: 肺 炎"
+              />
+            </label>
+
+            <label class="filter-item">
+              tag除外（スペース区切り可）
+              <input
+                type="text"
+                id="filterTagExclude"
+                class="filter-input"
+                placeholder="例: 小児"
+              />
+            </label>
           </div>
 
           <div class="note small">入力すると即時フィルタされます。</div>
@@ -111,6 +130,22 @@
           </div>
           <div class="table-wrapper">
             <table id="questionTable">
+              <colgroup id="qtable-colgroup">
+                <col style="width: 30px" />
+                <!-- 選択 -->
+                <col style="width: 100px" />
+                <!-- ID -->
+                <col style="width: 40px" />
+                <!-- 言語 -->
+                <col style="width: 40px" />
+                <!-- 難易度 -->
+                <col style="width: 80px" />
+                <!-- 領域 -->
+                <col style="width: 100px" />
+                <!-- タグ -->
+                <col style="width: 700px" />
+                <!-- タイトル/症例/問題文 -->
+              </colgroup>
               <thead>
                 <tr>
                   <th>選択</th>
@@ -118,6 +153,7 @@
                   <th>言語</th>
                   <th>難易度</th>
                   <th>領域</th>
+                  <th>タグ</th>
                   <th>タイトル / 症例 / 問題文</th>
                 </tr>
               </thead>
